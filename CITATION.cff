@@ -1,8 +1,6 @@
 cff-version: 1.2.0
 message: "If you use InstaDock-v2, please cite the paper below."
 title: "InstaDock-v2: an automated molecular docking tool with integrated ADMET prediction and analysis"
-version: "2.0.0"
-doi: 10.5281/zenodo.XXXXXXX        # replace after Zenodo deposit
 date-released: 2025-XX-XX
 authors:
   - family-names: Mathur
@@ -11,8 +9,7 @@ authors:
   - family-names: Hassan
     given-names: Md. Imtaiyaz
     orcid: https://orcid.org/0000-0002-3663-4940
-url: https://github.com/yourusername/InstaDock-v2
-license: "Custom-ARL"             # reference to LICENSE file
+url: https://github.com/MIHassanLab/InstaDock-v2
 keywords:
   - molecular docking
   - ADMET
