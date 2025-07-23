@@ -1,0 +1,16 @@
+# Python artefacts
+__pycache__/
+*.py[cod]
+.venv/
+
+# Build outputs
+build/
+dist/
+*.spec~
+
+# Private model URL
+src/models_config.json
+
+# OS clutter
+.DS_Store
+Thumbs.db

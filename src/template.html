@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>IDv2 ADMET Overview</title>
+  <script src="{{ chart_js_url }}"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #f8f8f8;
+    }
+    .container {
+      display: flex;
+      height: 100vh;
+    }
+    /* Sidebar (left panel) */
+    .sidebar {
+      width: 300px;
+      background-color: #fff;
+      border-right: 1px solid #ddd;
+      overflow-y: auto;
+    }
+    .sidebar h2 {
+      margin: 0;
+      padding: 15px;
+      background-color: #f2f2f2;
+      border-bottom: 1px solid #ddd;
+    }
+    .compound-item {
+      display: flex;
+      align-items: center;
+      padding: 10px 15px;
+      border-bottom: 1px solid #eee;
+      cursor: pointer;
+    }
+    .compound-item:hover {
+      background-color: #f9f9f9;
+    }
+    .compound-item input[type=checkbox] {
+      margin-right: 8px;
+    }
+    .compound-name {
+      font-weight: bold;
+      color: #333;
+    }
+
+    /* Details Panel (right panel) */
+    .details {
+      flex: 1;
+      padding: 40px;
+      overflow-y: auto;
+      transition: background-color 0.3s;
+    }
+    .details-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .details-header h1 {
+      margin: 0;
+      font-size: 1.5em;
+    }
+
+    /* TOP ROW: 4 columns: structure, radar, general properties, drug-likeness rules */
+    .top-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 30px; /* was 20px */
+      margin-bottom: 30px;
+    }
+    .col-structure, .col-radar, .col-general, .col-rules {
+      background-color: #fff;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 10px;
+    }
+    .col-structure {
+      flex: 0 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .col-structure img {
+      max-width: 250px;
+      max-height: 250px;
+      display: block;
+    }
+    .col-radar {
+      flex: 0 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .col-radar canvas {
+      max-width: 300px;
+      max-height: 300px;
+    }
+    .col-general {
+      flex: 1 1 auto;
+      min-width: 220px;
+      max-width: 320px;
+    }
+    /* Two-column grid for drug-likeness rules */
+    .col-rules {
+      flex: 1 1 auto;
+      min-width: 220px;
+      max-width: 320px;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+    .gen-card, .rule-card {
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 10px;
+      box-shadow: 1px 1px 4px rgba(0,0,0,0.1);
+    }
+    .gen-card {
+      margin-bottom: 10px;
+    }
+    .rule-card h3, .gen-card h3 {
+      margin: 0 0 5px 0;
+      font-size: 1em;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 5px;
+    }
+    .rule-card p, .gen-card p {
+      margin: 5px 0;
+      font-size: 0.95em;
+    }
+
+    /* BOTTOM ROW: ADMET property cards */
+    .bottom-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px; /* was 10px */
+      margin-bottom: 30px;
+    }
+    .admet-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;      /* center horizontally */
+      text-align: center;       /* center text */
+      justify-content: center;  /* center vertically if you want */
+      flex: 0 0 auto;
+      width: 200px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 10px;
+      box-shadow: 1px 1px 4px rgba(0,0,0,0.1);
+    }
+    .admet-card h3,
+    .admet-card p {
+      width: 100%;
+      margin: 0 0 5px;
+      font-size: 1em;
+      border-bottom: none;      /* remove extra border if you'd like */
+      padding: 0;
+    }
+    .admet-card h3 {
+      border-bottom: 1px solid #eee;
+      padding-bottom: 5px;
+      margin-bottom: 8px;
+      font-size: 1em;
+    }
+    .admet-card p {
+      margin-top: 0;
+      font-size: 0.95em;
+    }
+
+    .actions {
+      margin: 15px 10px;
+      padding: 10px;
+      border-top: 1px solid #eee;
+      background-color: #f9f9f9;
+    }
+
+    .actions button {
+      padding: 8px 12px;
+      margin: 5px 5px 5px 0;
+      cursor: pointer;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      background-color: #fff;
+      font-size: 0.9em;
+      transition: background-color 0.2s;
+      display: inline-block;
+      width: calc(50% - 3px); /* Two buttons per row with gap */
+    }
+
+    .actions button:hover {
+      background-color: #f0f0f0;
+    }
+
+    .actions button:last-child {
+      width: 100%; /* Export button takes full width */
+      margin-top: 10px;
+      background-color: #007bff;
+      color: white;
+      border-color: #007bff;
+    }
+
+    .actions button:last-child:hover {
+      background-color: #0056b3;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <!-- Sidebar: Compound list -->
+  <div class="sidebar">
+    <h2>Compounds</h2>
+    <div id="compoundList"></div>
+    <div class="actions">
+      <button onclick="selectAll()">Select All</button>
+      <button onclick="clearSelection()">Clear Selection</button>
+      <button onclick="exportSelectedToCSV()">Export Selected to CSV</button>
+    </div>
+  </div>
+
+  <!-- Details Panel -->
+  <div class="details" id="detailsPanel">
+    <p>Select a compound to see details.</p>
+  </div>
+</div>
+
+<script>
+  var data = {{data|tojson}};
+  var errorPlaceholderUrl = {{error_placeholder_url|tojson}};
+  var selectedMap = {};
+
+    const thresholds = {
+    "Oral Bioavailability 50%":{ type: "binary", good: "Positive" },
+    "Drug efflux pump (PGP) Inhibitor":{ type: "binary", good: "Positive" },
+    "Drug efflux pump (PGP) Substrate":{ type: "binary", good: "Positive" },
+    "Intestinal absorption (HIA)":{ type: "binary", good: "Positive" },
+    "Human colorectal adenocarcinoma cells permeability (Caco2) logPapp": { type: ">", value: 0.90},
+    "Blood-Brain Barrier Permeability (BBB)":{ type: "binary", good: "Positive" },    
+    "Steady State Volume of Distribution (L/kg)":{
+      type:  "range",
+      min:   0.71,
+      max:   2.81
+    },
+    "Breast cancer resistance protein inhibitor":{ type: "binary", good: "Positive" },
+    "CYP 2D6 Inhibitor":{ type: "binary", good: "Positive" },
+    "CYP 2D6 Substrate":{ type: "binary", good: "Positive" },
+    "CYP 3A4 Inhibitor":{ type: "binary", good: "Positive" },
+    "CYP 3A4 Substrate":{ type: "binary", good: "Positive" },
+    "Hepatic uptake rate (OATP1B1 Inhibitor)":{ type: "binary", good: "Positive" },
+    "Hepatic uptake rate (OATP1B3 Inhibitor)":{ type: "binary", good: "Positive" },
+    "Organic Cation Transporter-2 (OCT2) Inhibitor":{ type: "binary", good: "Positive" },
+    "Half-life of a drug ≥ 3 hours":{ type: "binary", good: "Positive" },
+    "AMES Mutagenesis":{ type: "binary", good: "Negative" },
+    "Carcinogenesis":{ type: "binary", good: "Negative" },
+    "Drug Induced Liver Injury":{ type: "binary", good: "Negative" },
+    "Micronucleus Genotoxicity":{ type: "binary", good: "Negative" },
+  };
+
+  // Populate sidebar with compounds
+  var compoundList = document.getElementById('compoundList');
+  data.forEach((compound, index) => {
+    selectedMap[index] = false;
+    var itemDiv = document.createElement('div');
+    itemDiv.className = 'compound-item';
+
+    itemDiv.onclick = function(e) {
+      if (e.target.type !== 'checkbox') {
+        showCompoundDetails(index);
+      }
+    };
+    var checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.onchange = function() {
+      selectedMap[index] = this.checked;
+    };
+    itemDiv.appendChild(checkbox);
+    var nameSpan = document.createElement('span');
+    nameSpan.className = 'compound-name';
+    nameSpan.textContent = compound.fileName;
+    itemDiv.appendChild(nameSpan);
+    compoundList.appendChild(itemDiv);
+  });
+
+  function showCompoundDetails(index) {
+    var compound = data[index];
+    var detailsPanel = document.getElementById('detailsPanel');
+    detailsPanel.style.backgroundColor = compound.bgcolor || '#ffffff';
+    detailsPanel.innerHTML = '';
+
+    // Header with compound name
+    var headerDiv = document.createElement('div');
+    headerDiv.className = 'details-header';
+    var title = document.createElement('h3');
+    title.textContent = compound.smiles 
+  ? "SMILES: " + compound.smiles 
+  : (compound.fileName || compound.name);
+    headerDiv.appendChild(title);
+    detailsPanel.appendChild(headerDiv);
+
+    if (compound.warning) {
+        var warningDiv = document.createElement('div');
+        warningDiv.style.color = 'red';
+        warningDiv.style.margin = '10px 0';
+        warningDiv.textContent = compound.warning;
+        detailsPanel.appendChild(warningDiv);
+    }
+
+    // TOP ROW
+    var topRow = document.createElement('div');
+    topRow.className = 'top-row';
+
+    // Column 1: Structure (Base64-embedded image)
+    var colStruct = document.createElement('div');
+    colStruct.className = 'col-structure';
+    var structImg = document.createElement('img');
+    console.log("Loading structure image from Base64 data...");
+    structImg.src = compound.structure_url || 'images/default_structure.png';
+    structImg.alt = 'Structure';
+    structImg.onerror = function () {
+      console.error("IDv2 Failed to load structure image:", this.src);
+      this.src = errorPlaceholderUrl;
+    };
+    colStruct.appendChild(structImg);
+    topRow.appendChild(colStruct);
+
+    // Column 2: Radar
+  if (compound.radar_labels && compound.radar_values && compound.radar_labels.length > 0 && compound.radar_values.length > 0) {
+    var colRadar = document.createElement('div');
+    colRadar.className = 'col-radar';
+    var canvas = document.createElement('canvas');
+    canvas.id = 'radarChart';
+    colRadar.appendChild(canvas);
+    topRow.appendChild(colRadar);
+    setTimeout(() => {
+        var ctx = document.getElementById('radarChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: compound.radar_labels,
+                datasets: [{
+                    data: compound.radar_values,  // Normalized values for chart
+                    originalData: compound.radar_original_values,  // Original values for tooltips
+                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: false,
+                plugins: { 
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            title: () => '',
+                            label: function(context) {
+                                // Map labels to descriptive names
+                                const labelMapping = {
+                                    "LIPO": "LogP",
+                                    "FLEX": "Number of rotatable bonds",
+                                    "SIZE": "Molecular weight",
+                                    "POLAR": "TPSA",
+                                    "INSOLU": "LogS",
+                                    "INSATU": "Fraction of sp3 carbons"
+                                };
+                                const fullLabel = labelMapping[context.label] || context.label;
+                                
+                                // Fetch original value from originalData
+                                const originalValue = context.dataset.originalData[context.dataIndex];
+                                return `${fullLabel}: ${originalValue.toFixed(2)}`;
+                            }
+                        }
+                    }
+                },
+                scales: { 
+                    r: { 
+                        suggestedMin: 0, 
+                        suggestedMax: 1,  // Fixed scale for normalized values
+                        ticks: { display: false } 
+                    } 
+                },
+                pointLabels: { display: false }
+            }
+        });
+    }, 50);
+  } else {
+        // Add placeholder text if no radar data
+        var noDataDiv = document.createElement('div');
+        noDataDiv.className = 'col-radar';
+        noDataDiv.textContent = "No radar data available";
+        topRow.appendChild(noDataDiv);
+    }
+
+    // Column 3: General Properties
+    var colGeneral = document.createElement('div');
+    colGeneral.className = 'col-general';
+    if (compound.generalProps) {
+      var genCard = document.createElement('div');
+      genCard.className = 'gen-card';
+      var h3g = document.createElement('h3');
+      h3g.textContent = "General Properties";
+      genCard.appendChild(h3g);
+      Object.keys(compound.generalProps).forEach(key => {
+        var p = document.createElement('p');
+        p.textContent = key + ": " + compound.generalProps[key];
+        genCard.appendChild(p);
+      });
+      colGeneral.appendChild(genCard);
+    }
+    topRow.appendChild(colGeneral);
+
+    var legendCard = document.createElement('div');
+legendCard.className = 'gen-card';
+
+// Title for the legend card
+var legendTitle = document.createElement('h3');
+legendTitle.textContent = "ADMET Color Legend";
+legendCard.appendChild(legendTitle);
+
+// We know from the bottom-row code that you color your cards with these categories:
+var legendItems = [
+  { category: 'Absorption',   color: '#e3f2fa' },
+  { category: 'Distribution', color: '#e3fce1' },
+  { category: 'Metabolism',   color: '#fcf8e3' },
+  { category: 'Excretion',    color: '#f7ebfc' },
+  { category: 'Toxicity',     color: '#f7e4e4' }
+];
+
+// Create a small swatch + label for each category
+legendItems.forEach(item => {
+  var legendRow = document.createElement('div');
+  legendRow.style.display = 'flex';
+  legendRow.style.alignItems = 'center';
+  legendRow.style.marginBottom = '5px';
+
+  var colorSwatch = document.createElement('div');
+  colorSwatch.style.width = '15px';
+  colorSwatch.style.height = '15px';
+  colorSwatch.style.backgroundColor = item.color;
+  colorSwatch.style.marginRight = '8px';
+
+  legendRow.appendChild(colorSwatch);
+
+  var textSpan = document.createElement('span');
+  textSpan.textContent = item.category;
+  legendRow.appendChild(textSpan);
+
+  legendCard.appendChild(legendRow);
+});
+
+colGeneral.appendChild(legendCard);
+// ***** END OF LEGEND CARD *****
+
+topRow.appendChild(colGeneral);
+
+    // Column 4: Drug-likeness Rules (two-column grid)
+    var colRules = document.createElement('div');
+    colRules.className = 'col-rules';
+    if (compound.rules) {
+      var ruleKeys = Object.keys(compound.rules);
+      ruleKeys.forEach(rule => {
+        var ruleCard = document.createElement('div');
+        ruleCard.className = 'rule-card';
+        var rch3 = document.createElement('h3');
+        rch3.textContent = rule;
+        ruleCard.appendChild(rch3);
+        var p = document.createElement('p');
+        p.textContent = compound.rules[rule];
+        ruleCard.appendChild(p);
+        colRules.appendChild(ruleCard);
+      });
+    }
+    topRow.appendChild(colRules);
+
+    detailsPanel.appendChild(topRow);
+
+    // BOTTOM ROW: ADMET properties
+    if (compound.admetProps) {
+      var bottomRow = document.createElement('div');
+      bottomRow.className = 'bottom-row';
+      compound.admetProps.forEach(propObj => {
+        var card = document.createElement('div');
+        card.className = 'admet-card';
+        var color = '#ffffff';
+        switch (propObj.category) {
+          case 'Absorption':   color = '#e3f2fa'; break;
+          case 'Distribution': color = '#e3fce1'; break;
+          case 'Metabolism':   color = '#fcf8e3'; break;
+          case 'Excretion':    color = '#f7ebfc'; break;
+          case 'Toxicity':     color = '#f7e4e4'; break;
+        }
+        card.style.backgroundColor = color;
+        var h3 = document.createElement('h3');
+        h3.textContent = propObj.name;
+        card.appendChild(h3);
+
+        var p = document.createElement('p');
+        p.textContent = propObj.value;
+
+        const rule = thresholds[propObj.name];
+        if (rule) {
+          if (rule.type === 'binary') {
+            // Positive = good, everything else = bad
+            p.style.color = (propObj.value === rule.good) ? 'green' : 'red';
+          } else {
+            // strip non-numeric chars for parsing
+            const num = parseFloat(propObj.value.replace(/[^0-9.\-]/g, ''));
+            if (!isNaN(num)) {
+              if (rule.type === 'range') {
+                p.style.color = (num >= rule.min && num <= rule.max) ? 'green' : 'red';
+              } else if (rule.type === '>') {
+                p.style.color = (num > rule.value) ? 'red' : 'green';
+              } else if (rule.type === '<') {
+                p.style.color = (num < rule.value) ? 'red' : 'green';
+              }
+            }
+          }
+        }
+
+        card.appendChild(p);
+        bottomRow.appendChild(card);
+      });
+      detailsPanel.appendChild(bottomRow);
+    }
+  }
+
+  // Export selected compounds to CSV
+  function formatForExcel(val) {
+    if (val === null || val === undefined) return "";
+    let s = String(val);
+    // If the string looks like a date, force it to be treated as text.
+    if (/^\d{1,2}-\d{1,2}(-\d{2,4})?$/.test(s)) {
+      return '="' + s + '"';
+    }
+    // If the value contains the degree symbol, force text (so "℃" or "°C" show properly).
+    if (s.indexOf("°") !== -1) {
+      return '="' + s + '"';
+    }
+    // If value contains a comma or double quotes, wrap it in double quotes (escaping as needed).
+    if (s.indexOf(",") !== -1 || s.indexOf('"') !== -1) {
+      s = s.replace(/"/g, '""');
+      return '"' + s + '"';
+    }
+    return s;
+  }
+
+  function selectAll() {
+  var checkboxes = document.querySelectorAll('.compound-item input[type=checkbox]');
+  checkboxes.forEach((checkbox, index) => {
+    checkbox.checked = true;
+    selectedMap[index] = true;
+  });
+}
+
+// Clear all selections
+function clearSelection() {
+  var checkboxes = document.querySelectorAll('.compound-item input[type=checkbox]');
+  checkboxes.forEach((checkbox, index) => {
+    checkbox.checked = false;
+    selectedMap[index] = false;
+  });
+}
+
+  // Export selected compounds to CSV by flattening out the available properties.
+  function exportSelectedToCSV() {
+    // Filter only the compounds with their checkbox selected.
+    var selectedData = data.filter((compound, index) => selectedMap[index]);
+    if (selectedData.length === 0) {
+      alert('No compounds selected.');
+      return;
+    }
+
+    // Use a set to gather all headers dynamically:
+    // - Top-level compound properties (skip ones used for rendering e.g., "bgcolor", "fileName")
+    // - Keys from the generalProps object.
+    // - The "name" from each entry in admetProps (i.e. use that as heading).
+    var headersSet = new Set();
+
+    selectedData.forEach(comp => {
+      // List the keys that are considered "flat" properties
+      const flatKeys = Object.keys(comp).filter(key => 
+        key !== 'admetProps' && key !== 'generalProps' && key !== 'rules' &&
+        key !== 'radar_labels' && key !== 'radar_values' && key !== 'structure_url' &&
+        key !== 'bgcolor'
+      );
+      flatKeys.forEach(key => headersSet.add(key));
+
+      // Include keys from generalProps (if available)
+      if (comp.generalProps) {
+        Object.keys(comp.generalProps).forEach(key => headersSet.add(key));
+      }
+      // Include each admet property (using its "name" as header)
+      if (comp.admetProps && Array.isArray(comp.admetProps)) {
+        comp.admetProps.forEach(prop => {
+          if (prop.name) {
+            headersSet.add(prop.name);
+          }
+        });
+      }
+    });
+
+    // Convert the set into an array of headers
+    var headers = Array.from(headersSet);
+    headers = headers.filter(h => h !== 'radar_original_values');
+    // Prepend a BOM for Excel to recognize the file as UTF-8
+    var csv = "\ufeff" + headers.join(",") + "\n";
+
+    // Create each CSV row from the selected data.
+    selectedData.forEach(comp => {
+      var row = [];
+      headers.forEach(header => {
+        let value = "";
+        // Check if the header corresponds to a top-level property.
+        if (comp.hasOwnProperty(header)) {
+          value = comp[header];
+        }
+        // Otherwise, check the generalProps property.
+        else if (comp.generalProps && comp.generalProps[header] !== undefined) {
+          value = comp.generalProps[header];
+        }
+        // Otherwise, check the admetProps array (using the 'name' as the key).
+        else if (comp.admetProps && Array.isArray(comp.admetProps)) {
+          const found = comp.admetProps.find(prop => prop.name === header);
+          if (found) {
+            value = found.value;
+          }
+        }
+        // Format the value so Excel will treat it correctly.
+        row.push(formatForExcel(value));
+      });
+      csv += row.join(",") + "\n";
+    });
+
+    // Create a blob from the CSV string and prompt a download.
+    var blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    var url = URL.createObjectURL(blob);
+    var link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "selected_compounds.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+</script>
+</body>
+</html>
