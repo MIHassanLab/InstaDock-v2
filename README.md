@@ -80,8 +80,6 @@ The following third-party software must be installed separately by users if comp
 1. **Download InstaDock-v2 executable** from [hassanlab.in/instadock-v2](https://hassanlab.in/instadock-v2)
 2. **Run InstaDock-v2** executable
 
-**Installation time**: ~10-15 minutes (including dependencies)
-
 ### Option 2: From Source Code
 
 #### Clone and Setup
